@@ -32,193 +32,241 @@ const db = new sqlite3.Database(dbPath, (err) => {
 function initializeDatabase() {
   console.log('Инициализация базы данных...');
   
-  // Удаляем все существующие таблицы и пересоздаем их
-  db.run('DROP TABLE IF EXISTS reviews', (err) => {
-    if (err) {
-      console.error('Ошибка при удалении таблицы reviews:', err.message);
-    } else {
-      console.log('Таблица reviews удалена');
-    }
-  });
-  
-  db.run('DROP TABLE IF EXISTS bookings', (err) => {
-    if (err) {
-      console.error('Ошибка при удалении таблицы bookings:', err.message);
-    } else {
-      console.log('Таблица bookings удалена');
-    }
-  });
-  
-  // Создание таблицы пользователей
-  db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'user'
-  )`, (err) => {
-    if (err) {
-      console.error('Ошибка при создании таблицы users:', err.message);
-    } else {
-      console.log('Таблица users создана или уже существует');
-      // Проверяем, есть ли уже пользователи
-      db.get('SELECT COUNT(*) as count FROM users', [], async (err, row) => {
+  // Используем промисы для последовательного выполнения SQL запросов
+  const createUsersTable = () => {
+    return new Promise((resolve, reject) => {
+      // Создание таблицы пользователей
+      db.run(`CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user'
+      )`, (err) => {
         if (err) {
-          console.error(err.message);
-          return;
-        }
-        
-        // Если пользователей нет, создаем admin и user
-        if (row.count === 0) {
-          try {
-            const adminHash = await bcrypt.hash('admin', 10);
-            const userHash = await bcrypt.hash('user', 10);
-            
-            db.run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', ['admin', adminHash, 'admin']);
-            db.run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', ['user', userHash, 'user']);
-            
-            console.log('Добавлены тестовые пользователи: admin/admin и user/user');
-          } catch (error) {
-            console.error('Ошибка при создании тестовых пользователей:', error);
-          }
-        }
-      });
-    }
-  });
-  
-  // Создание таблицы туров
-  db.run(`CREATE TABLE IF NOT EXISTS tours (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    description TEXT,
-    price REAL NOT NULL,
-    duration INTEGER NOT NULL,
-    destination TEXT NOT NULL,
-    image_url TEXT,
-    available_spots INTEGER NOT NULL,
-    transport_type TEXT DEFAULT 'Автобус',
-    departure_location TEXT DEFAULT 'Центральный автовокзал',
-    departure_time TEXT DEFAULT '08:00',
-    tour_guide TEXT DEFAULT 'Опытный гид',
-    included_services TEXT DEFAULT 'Проживание, завтраки, экскурсии'
-  )`, (err) => {
-    if (err) {
-      console.error('Ошибка при создании таблицы tours:', err.message);
-    } else {
-      console.log('Таблица tours создана или уже существует');
-      // Добавление тестовых данных, если таблица пуста
-      db.get('SELECT COUNT(*) as count FROM tours', [], (err, row) => {
-        if (err) {
-          console.error(err.message);
-          return;
-        }
-        
-        if (row.count === 0) {
-          const tours = [
-            {
-              name: 'Прекрасная Франция',
-              description: 'Незабываемое путешествие по Франции с посещением Парижа, Лиона и Ниццы',
-              price: 1500,
-              duration: 7,
-              destination: 'Франция',
-              image_url: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34',
-              available_spots: 20,
-              transport_type: 'Комфортабельный автобус Volvo',
-              departure_location: 'Центральный вокзал, платформа 3',
-              departure_time: '07:30',
-              tour_guide: 'Андрей Петров - гид со знанием французского',
-              included_services: 'Проживание в отелях 4*, завтраки, экскурсии по программе, трансфер'
-            },
-            {
-              name: 'Итальянские каникулы',
-              description: 'Тур по историческим городам Италии: Рим, Венеция, Флоренция',
-              price: 1200,
-              duration: 6,
-              destination: 'Италия',
-              image_url: 'https://images.unsplash.com/photo-1529260830199-42c24126f198',
-              available_spots: 15,
-              transport_type: 'Самолет + автобусные переезды',
-              departure_location: 'Аэропорт, терминал B',
-              departure_time: '10:45',
-              tour_guide: 'Елена Сидорова - историк искусств',
-              included_services: 'Авиаперелет, отели 3-4*, завтраки, экскурсии в музеи, групповой трансфер'
-            },
-            {
-              name: 'Загадочная Греция',
-              description: 'Отдых на лучших пляжах греческих островов и экскурсии по древним руинам',
-              price: 950,
-              duration: 8,
-              destination: 'Греция',
-              image_url: 'https://images.unsplash.com/photo-1533105079780-92b9be482077',
-              available_spots: 25,
-              transport_type: 'Самолет + паром',
-              departure_location: 'Аэропорт, терминал D',
-              departure_time: '09:15',
-              tour_guide: 'Дмитрий Иванов - специалист по греческой культуре',
-              included_services: 'Перелет, отели 4*, завтраки и ужины, экскурсии, трансферы, паромные переправы'
+          console.error('Ошибка при создании таблицы users:', err.message);
+          reject(err);
+        } else {
+          console.log('Таблица users создана или уже существует');
+          // Проверяем, есть ли уже пользователи
+          db.get('SELECT COUNT(*) as count FROM users', [], async (err, row) => {
+            if (err) {
+              console.error('Ошибка при проверке пользователей:', err.message);
+              reject(err);
+              return;
             }
-          ];
-          
-          const insertTour = 'INSERT INTO tours (name, description, price, duration, destination, image_url, available_spots, transport_type, departure_location, departure_time, tour_guide, included_services) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
-          
-          tours.forEach(tour => {
-            db.run(insertTour, [
-              tour.name, 
-              tour.description, 
-              tour.price, 
-              tour.duration, 
-              tour.destination, 
-              tour.image_url, 
-              tour.available_spots,
-              tour.transport_type,
-              tour.departure_location,
-              tour.departure_time,
-              tour.tour_guide,
-              tour.included_services
-            ]);
+            
+            // Если пользователей нет, создаем admin и user
+            if (row.count === 0) {
+              try {
+                const adminHash = await bcrypt.hash('admin', 10);
+                const userHash = await bcrypt.hash('user', 10);
+                
+                await new Promise((res, rej) => {
+                  db.run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', 
+                    ['admin', adminHash, 'admin'], function(err) {
+                      if (err) rej(err);
+                      else res();
+                    });
+                });
+                
+                await new Promise((res, rej) => {
+                  db.run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', 
+                    ['user', userHash, 'user'], function(err) {
+                      if (err) rej(err);
+                      else res();
+                    });
+                });
+                
+                console.log('Добавлены тестовые пользователи: admin/admin и user/user');
+              } catch (error) {
+                console.error('Ошибка при создании тестовых пользователей:', error);
+                reject(error);
+                return;
+              }
+            }
+            resolve();
           });
-          
-          console.log('Добавлены тестовые туры');
         }
       });
-    }
-  });
+    });
+  };
   
-  // Создание таблицы бронирований
-  db.run(`CREATE TABLE IF NOT EXISTS bookings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    tour_id INTEGER NOT NULL,
-    booking_date TEXT NOT NULL,
-    participants INTEGER NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending',
-    total_price REAL NOT NULL,
-    FOREIGN KEY(user_id) REFERENCES users(id),
-    FOREIGN KEY(tour_id) REFERENCES tours(id)
-  )`, (err) => {
-    if (err) {
-      console.error('Ошибка при создании таблицы bookings:', err.message);
-    } else {
-      console.log('Таблица bookings создана или уже существует');
-    }
-  });
+  const createToursTable = () => {
+    return new Promise((resolve, reject) => {
+      // Создание таблицы туров
+      db.run(`CREATE TABLE IF NOT EXISTS tours (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        price REAL NOT NULL,
+        duration INTEGER NOT NULL,
+        destination TEXT NOT NULL,
+        image_url TEXT,
+        available_spots INTEGER NOT NULL,
+        transport_type TEXT DEFAULT 'Автобус',
+        departure_location TEXT DEFAULT 'Центральный автовокзал',
+        departure_time TEXT DEFAULT '08:00',
+        tour_guide TEXT DEFAULT 'Опытный гид',
+        included_services TEXT DEFAULT 'Проживание, завтраки, экскурсии'
+      )`, (err) => {
+        if (err) {
+          console.error('Ошибка при создании таблицы tours:', err.message);
+          reject(err);
+        } else {
+          console.log('Таблица tours создана или уже существует');
+          // Добавление тестовых данных, если таблица пуста
+          db.get('SELECT COUNT(*) as count FROM tours', [], async (err, row) => {
+            if (err) {
+              console.error('Ошибка при проверке туров:', err.message);
+              reject(err);
+              return;
+            }
+            
+            if (row.count === 0) {
+              const tours = [
+                {
+                  name: 'Прекрасная Франция',
+                  description: 'Незабываемое путешествие по Франции с посещением Парижа, Лиона и Ниццы',
+                  price: 1500,
+                  duration: 7,
+                  destination: 'Франция',
+                  image_url: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34',
+                  available_spots: 20,
+                  transport_type: 'Комфортабельный автобус Volvo',
+                  departure_location: 'Центральный вокзал, платформа 3',
+                  departure_time: '07:30',
+                  tour_guide: 'Андрей Петров - гид со знанием французского',
+                  included_services: 'Проживание в отелях 4*, завтраки, экскурсии по программе, трансфер'
+                },
+                {
+                  name: 'Итальянские каникулы',
+                  description: 'Тур по историческим городам Италии: Рим, Венеция, Флоренция',
+                  price: 1200,
+                  duration: 6,
+                  destination: 'Италия',
+                  image_url: 'https://images.unsplash.com/photo-1529260830199-42c24126f198',
+                  available_spots: 15,
+                  transport_type: 'Самолет + автобусные переезды',
+                  departure_location: 'Аэропорт, терминал B',
+                  departure_time: '10:45',
+                  tour_guide: 'Елена Сидорова - историк искусств',
+                  included_services: 'Авиаперелет, отели 3-4*, завтраки, экскурсии в музеи, групповой трансфер'
+                },
+                {
+                  name: 'Загадочная Греция',
+                  description: 'Отдых на лучших пляжах греческих островов и экскурсии по древним руинам',
+                  price: 950,
+                  duration: 8,
+                  destination: 'Греция',
+                  image_url: 'https://images.unsplash.com/photo-1533105079780-92b9be482077',
+                  available_spots: 25,
+                  transport_type: 'Самолет + паром',
+                  departure_location: 'Аэропорт, терминал D',
+                  departure_time: '09:15',
+                  tour_guide: 'Дмитрий Иванов - специалист по греческой культуре',
+                  included_services: 'Перелет, отели 4*, завтраки и ужины, экскурсии, трансферы, паромные переправы'
+                }
+              ];
+              
+              const insertTour = 'INSERT INTO tours (name, description, price, duration, destination, image_url, available_spots, transport_type, departure_location, departure_time, tour_guide, included_services) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+              
+              // Последовательное добавление туров с использованием промисов
+              try {
+                for (const tour of tours) {
+                  await new Promise((res, rej) => {
+                    db.run(insertTour, [
+                      tour.name, 
+                      tour.description, 
+                      tour.price, 
+                      tour.duration, 
+                      tour.destination, 
+                      tour.image_url, 
+                      tour.available_spots,
+                      tour.transport_type,
+                      tour.departure_location,
+                      tour.departure_time,
+                      tour.tour_guide,
+                      tour.included_services
+                    ], function(err) {
+                      if (err) rej(err);
+                      else res();
+                    });
+                  });
+                }
+                console.log('Добавлены тестовые туры');
+              } catch (error) {
+                console.error('Ошибка при добавлении тестовых туров:', error);
+                reject(error);
+                return;
+              }
+            }
+            resolve();
+          });
+        }
+      });
+    });
+  };
   
-  // Создание таблицы отзывов
-  db.run(`CREATE TABLE IF NOT EXISTS reviews (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    tour_id INTEGER NOT NULL,
-    rating INTEGER NOT NULL,
-    text TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(user_id) REFERENCES users(id),
-    FOREIGN KEY(tour_id) REFERENCES tours(id)
-  )`, (err) => {
-    if (err) {
-      console.error('Ошибка при создании таблицы reviews:', err.message);
-    } else {
-      console.log('Таблица reviews создана или уже существует');
-    }
-  });
+  const createBookingsTable = () => {
+    return new Promise((resolve, reject) => {
+      // Создание таблицы бронирований
+      db.run(`CREATE TABLE IF NOT EXISTS bookings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        tour_id INTEGER NOT NULL,
+        booking_date TEXT NOT NULL,
+        participants INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        total_price REAL NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id),
+        FOREIGN KEY(tour_id) REFERENCES tours(id)
+      )`, (err) => {
+        if (err) {
+          console.error('Ошибка при создании таблицы bookings:', err.message);
+          reject(err);
+        } else {
+          console.log('Таблица bookings создана или уже существует');
+          resolve();
+        }
+      });
+    });
+  };
+  
+  const createReviewsTable = () => {
+    return new Promise((resolve, reject) => {
+      // Создание таблицы отзывов
+      db.run(`CREATE TABLE IF NOT EXISTS reviews (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        tour_id INTEGER NOT NULL,
+        rating INTEGER NOT NULL,
+        text TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id),
+        FOREIGN KEY(tour_id) REFERENCES tours(id)
+      )`, (err) => {
+        if (err) {
+          console.error('Ошибка при создании таблицы reviews:', err.message);
+          reject(err);
+        } else {
+          console.log('Таблица reviews создана или уже существует');
+          resolve();
+        }
+      });
+    });
+  };
+  
+  // Последовательно выполняем создание таблиц
+  createUsersTable()
+    .then(() => createToursTable())
+    .then(() => createBookingsTable())
+    .then(() => createReviewsTable())
+    .then(() => {
+      console.log('База данных успешно инициализирована');
+    })
+    .catch(err => {
+      console.error('Ошибка при инициализации базы данных:', err);
+    });
 }
 
 // Middleware для проверки токена JWT
