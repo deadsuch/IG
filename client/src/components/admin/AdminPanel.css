@@ -1,0 +1,76 @@
+.admin-panel {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.admin-panel h1 {
+  margin-bottom: 2rem;
+  color: #333;
+  text-align: center;
+}
+
+.admin-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.admin-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.admin-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.admin-card h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.admin-card p {
+  color: #666;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.admin-card .btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 500;
+  padding: 0.75rem 0;
+  border-radius: 6px;
+  background-color: #4a6fa5;
+  color: white;
+  text-decoration: none;
+  border: 2px solid #4a6fa5;
+  transition: all 0.3s ease;
+}
+
+.admin-card .btn:hover {
+  background-color: #345287;
+  border-color: #345287;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.admin-card .btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+  .admin-dashboard {
+    grid-template-columns: 1fr;
+  }
+} 
