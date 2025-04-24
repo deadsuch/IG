@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  # Серверная часть
+  server:
+    build: ./server
+    container_name: travel-agency-server
+    restart: always
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./server:/usr/src/app
+      - ./server/database.db:/usr/src/app/database.db
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      - JWT_SECRET=your_jwt_secret_key
+      - DB_PATH=/usr/src/app/database.db
+
+  # Клиентская часть
+  client:
+    build: ./client
+    container_name: travel-agency-client
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - server 

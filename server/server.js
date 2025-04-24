@@ -18,7 +18,7 @@ app.use(cors());
 app.use(express.json());
 
 // Подключение к базе данных
-const dbPath = path.resolve(__dirname, 'database.db');
+const dbPath = process.env.DB_PATH || path.resolve(__dirname, 'database.db');
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Ошибка при подключении к БД:', err.message);
@@ -846,8 +846,8 @@ app.put('/api/admin/tours/:id', authenticateToken, isAdmin, (req, res) => {
 app.delete('/api/admin/tours/:id', authenticateToken, isAdmin, (req, res) => {
   const tourId = req.params.id;
   
-  // Проверяем, есть ли бронирования для этого тура
-  db.get('SELECT COUNT(*) as count FROM bookings WHERE tour_id = ?', [tourId], (err, row) => {
+  // Проверяем, есть ли активные бронирования для этого тура
+  db.get('SELECT COUNT(*) as count FROM bookings WHERE tour_id = ? AND status != "cancelled"', [tourId], (err, row) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -870,7 +870,12 @@ app.delete('/api/admin/tours/:id', authenticateToken, isAdmin, (req, res) => {
   });
 });
 
-// Запуск сервера
-app.listen(PORT, () => {
-  console.log(`Сервер запущен на порту ${PORT}`);
-}); 
+// Запуск сервера только если файл запущен напрямую (не через require)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
+  }); 
+}
+
+// Экспортируем приложение для тестирования
+module.exports = app; 

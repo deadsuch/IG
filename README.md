@@ -1,5 +1,72 @@
 # Туристическое агентство - Веб-приложение
 
+Проект состоит из двух частей:
+- Серверная часть (Node.js, Express, SQLite)
+- Клиентская часть (React)
+
+## Запуск проекта обычным способом
+
+### Запуск сервера:
+
+```bash
+cd server
+npm install
+npm start
+```
+
+Сервер будет доступен по адресу: http://localhost:5001
+
+### Запуск клиента:
+
+```bash
+cd client
+npm install
+npm start
+```
+
+Клиентская часть будет доступна по адресу: http://localhost:3000
+
+## Запуск проекта с использованием Docker
+
+### Запуск всего приложения через Docker Compose:
+
+```bash
+docker-compose up -d
+```
+
+После запуска:
+- Клиентская часть будет доступна по адресу: http://localhost
+- Серверная часть будет доступна по адресу: http://localhost:5001
+
+### Запуск только сервера через Docker:
+
+```bash
+cd server
+docker build -t travel-agency-server .
+docker run -p 5001:5001 -d travel-agency-server
+```
+
+### Запуск только клиента через Docker:
+
+```bash
+cd client
+docker build -t travel-agency-client .
+docker run -p 80:80 -d travel-agency-client
+```
+
+## Запуск интеграционных тестов сервера
+
+```bash
+cd server
+npm test
+```
+
+## Остановка Docker контейнеров
+
+```bash
+docker-compose down
+```
+
 ## Описание проекта
 Полнофункциональное веб-приложение для туристического агентства, разработанное с использованием стека MERN (SQLite вместо MongoDB). Проект реализует систему просмотра туров, бронирования, управления отзывами и администрирования всего контента.
 
